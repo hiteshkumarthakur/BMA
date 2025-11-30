@@ -46,7 +46,7 @@ BMA (Burp Mobile Assistant) is designed to simplify and automate common tasks in
 - Proper handling of zombie/defunct processes
 - <img src="static/2.gif" alt="frida panel" width="800"/>
 
-### 3. Curl to Repeater Converter
+### 3. Curl to Repeater Converter (inspired by: https://github.com/Gauravjha68535/Curl-To-Repeater)
 - Convert any curl command to a Burp Repeater request
 - Supports all common curl flags and options
 - Automatic parsing of headers, cookies, and request bodies
