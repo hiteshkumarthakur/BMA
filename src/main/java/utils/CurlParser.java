@@ -61,25 +61,110 @@ public class CurlParser {
     }
 
     private String extractUrl(String curlCommand) {
-        Pattern pattern = Pattern.compile("curl\\s+(?:-[^\\s]+\\s+)*['\"]?([^'\"\\s]+)['\"]?");
+        // Method 1: Look for --url option explicitly
+        Pattern pattern = Pattern.compile("--url\\s+['\"]?([^'\"\\s]+)['\"]?");
         Matcher matcher = pattern.matcher(curlCommand);
         if (matcher.find()) {
             return matcher.group(1);
         }
 
-        pattern = Pattern.compile("--url\\s+['\"]?([^'\"\\s]+)['\"]?");
-        matcher = pattern.matcher(curlCommand);
-        if (matcher.find()) {
-            return matcher.group(1);
-        }
-
+        // Method 2: Direct pattern matching for http(s):// URLs
         pattern = Pattern.compile("(https?://[^\\s'\"]+)");
         matcher = pattern.matcher(curlCommand);
         if (matcher.find()) {
             return matcher.group(1);
         }
 
+        // Method 3: Universal tokenization approach
+        // Split by spaces while preserving quoted strings
+        List<String> tokens = tokenizeCurlCommand(curlCommand);
+
+        for (int i = 0; i < tokens.size(); i++) {
+            String token = tokens.get(i);
+
+            // Skip 'curl' command itself
+            if (token.equals("curl")) {
+                continue;
+            }
+
+            // If token starts with '-', it's a flag
+            if (token.startsWith("-")) {
+                // Check if this flag expects an argument (most single-dash flags do)
+                // Long flags (--) almost always have arguments
+                // Short flags without letters after them (like -X, -H, -d) have arguments
+                // Standalone flags (like -v, -i, -L, -k) don't have arguments
+                if (isStandaloneFlag(token)) {
+                    // This flag doesn't take an argument, continue to next token
+                    continue;
+                } else {
+                    // This flag takes an argument, skip the next token
+                    i++;
+                    continue;
+                }
+            }
+
+            // If we reach here, it's not a flag - likely the URL
+            // Additional validation: check if it looks like a URL
+            if (token.startsWith("http://") || token.startsWith("https://") || token.contains(".")) {
+                return token;
+            }
+        }
+
         return null;
+    }
+
+    /**
+     * Tokenize curl command while respecting quoted strings
+     */
+    private List<String> tokenizeCurlCommand(String command) {
+        List<String> tokens = new ArrayList<>();
+        Pattern pattern = Pattern.compile("'[^']*'|\"[^\"]*\"|\\S+");
+        Matcher matcher = pattern.matcher(command);
+
+        while (matcher.find()) {
+            String token = matcher.group();
+            // Remove surrounding quotes
+            token = token.replaceAll("^['\"]|['\"]$", "");
+            tokens.add(token);
+        }
+
+        return tokens;
+    }
+
+    /**
+     * Check if a flag is standalone (doesn't take an argument)
+     * Universal approach: most standalone flags are single letter without value
+     */
+    private boolean isStandaloneFlag(String flag) {
+        // Common standalone flags that don't take arguments
+        Set<String> standaloneFlags = new HashSet<>(Arrays.asList(
+            "-v", "--verbose",
+            "-i", "--include",
+            "-I", "--head",
+            "-L", "--location",
+            "-k", "--insecure",
+            "-s", "--silent",
+            "-S", "--show-error",
+            "-#", "--progress-bar",
+            "-n", "--netrc",
+            "-N", "--no-buffer",
+            "-l", "--list-only",
+            "-f", "--fail",
+            "-g", "--globoff",
+            "-j", "--junk-session-cookies",
+            "-J", "--remote-header-name",
+            "-O", "--remote-name",
+            "-q", "--disable",
+            "-V", "--version",
+            "-h", "--help",
+            "--compressed",
+            "--no-keepalive",
+            "--http1.0",
+            "--http1.1",
+            "--http2"
+        ));
+
+        return standaloneFlags.contains(flag);
     }
 
     private String extractPath(String urlString) {
@@ -114,57 +199,32 @@ public class CurlParser {
 
     private List<HttpHeader> extractHeaders(String curlCommand) {
         List<HttpHeader> headers = new ArrayList<>();
+        List<String> tokens = tokenizeCurlCommand(curlCommand);
 
-        Pattern pattern = Pattern.compile("-H\\s+['\"]([^'\"]+)['\"]|--header\\s+['\"]([^'\"]+)['\"]");
-        Matcher matcher = pattern.matcher(curlCommand);
+        for (int i = 0; i < tokens.size() - 1; i++) {
+            String token = tokens.get(i);
+            String nextToken = tokens.get(i + 1);
 
-        while (matcher.find()) {
-            String headerLine = matcher.group(1);
-            if (headerLine == null) {
-                headerLine = matcher.group(2);
+            // Handle -H or --header flags
+            if (token.equals("-H") || token.equals("--header")) {
+                if (nextToken.contains(":")) {
+                    String[] parts = nextToken.split(":", 2);
+                    String name = parts[0].trim();
+                    String value = parts[1].trim();
+                    headers.add(HttpHeader.httpHeader(name, value));
+                }
             }
-
-            if (headerLine != null && headerLine.contains(":")) {
-                String[] parts = headerLine.split(":", 2);
-                String name = parts[0].trim();
-                String value = parts[1].trim();
-                headers.add(HttpHeader.httpHeader(name, value));
+            // Handle --cookie or -b flags
+            else if (token.equals("--cookie") || token.equals("-b")) {
+                headers.add(HttpHeader.httpHeader("Cookie", nextToken));
             }
-        }
-
-        pattern = Pattern.compile("--cookie\\s+['\"]([^'\"]+)['\"]|-b\\s+['\"]([^'\"]+)['\"]");
-        matcher = pattern.matcher(curlCommand);
-        if (matcher.find()) {
-            String cookie = matcher.group(1);
-            if (cookie == null) {
-                cookie = matcher.group(2);
+            // Handle --user-agent or -A flags
+            else if (token.equals("--user-agent") || token.equals("-A")) {
+                headers.add(HttpHeader.httpHeader("User-Agent", nextToken));
             }
-            if (cookie != null) {
-                headers.add(HttpHeader.httpHeader("Cookie", cookie));
-            }
-        }
-
-        pattern = Pattern.compile("--user-agent\\s+['\"]([^'\"]+)['\"]|-A\\s+['\"]([^'\"]+)['\"]");
-        matcher = pattern.matcher(curlCommand);
-        if (matcher.find()) {
-            String userAgent = matcher.group(1);
-            if (userAgent == null) {
-                userAgent = matcher.group(2);
-            }
-            if (userAgent != null) {
-                headers.add(HttpHeader.httpHeader("User-Agent", userAgent));
-            }
-        }
-
-        pattern = Pattern.compile("--referer\\s+['\"]([^'\"]+)['\"]|-e\\s+['\"]([^'\"]+)['\"]");
-        matcher = pattern.matcher(curlCommand);
-        if (matcher.find()) {
-            String referer = matcher.group(1);
-            if (referer == null) {
-                referer = matcher.group(2);
-            }
-            if (referer != null) {
-                headers.add(HttpHeader.httpHeader("Referer", referer));
+            // Handle --referer or -e flags
+            else if (token.equals("--referer") || token.equals("-e")) {
+                headers.add(HttpHeader.httpHeader("Referer", nextToken));
             }
         }
 
@@ -172,18 +232,26 @@ public class CurlParser {
     }
 
     private String extractBody(String curlCommand) {
-        Pattern pattern = Pattern.compile("(?:-d|--data|--data-raw|--data-binary)\\s+['\"]([^'\"]*)['\"]");
-        Matcher matcher = pattern.matcher(curlCommand);
-
         StringBuilder body = new StringBuilder();
-        while (matcher.find()) {
-            if (body.length() > 0) {
-                body.append("&");
+        List<String> tokens = tokenizeCurlCommand(curlCommand);
+
+        for (int i = 0; i < tokens.size() - 1; i++) {
+            String token = tokens.get(i);
+            String nextToken = tokens.get(i + 1);
+
+            // Handle all data-related flags
+            if (token.equals("-d") || token.equals("--data") ||
+                token.equals("--data-raw") || token.equals("--data-binary") ||
+                token.equals("--data-urlencode")) {
+
+                if (body.length() > 0) {
+                    body.append("&");
+                }
+                body.append(nextToken);
             }
-            body.append(matcher.group(1));
         }
 
-        return body.length() > 0 ? body.toString() : null;
+        return !body.isEmpty() ? body.toString() : null;
     }
 }
 

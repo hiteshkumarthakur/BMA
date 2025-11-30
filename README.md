@@ -1,4 +1,6 @@
-# BMA - Burp Mobile Automation
+# BMA - Burp Mobile Assistant
+
+<img src="static/logo.png" alt="BMA Logo" width="400"/>
 
 A comprehensive Burp Suite extension that streamlines mobile application security testing by providing essential automation tools for proxy configuration, Frida server deployment, and request manipulation.
 
@@ -19,18 +21,11 @@ A comprehensive Burp Suite extension that streamlines mobile application securit
 
 ## Overview
 
-BMA (Burp Mobile Automation) is designed to simplify and automate common tasks in mobile application security testing. It integrates seamlessly with Burp Suite and provides an intuitive interface for managing Android device connections, setting up Frida instrumentation, and converting curl commands to Burp Repeater requests.
+BMA (Burp Mobile Assistant) is designed to simplify and automate common tasks in mobile application security testing. It integrates seamlessly with Burp Suite and provides an intuitive interface for managing Android device connections, setting up Frida instrumentation, and converting curl commands to Burp Repeater requests.
 
 ## Features
 
-### 1. Curl to Repeater Converter
-- Convert any curl command to a Burp Repeater request
-- Supports all common curl flags and options
-- Automatic parsing of headers, cookies, and request bodies
-- Handles GET, POST, PUT, DELETE, and other HTTP methods
-- One-click send to Repeater
-
-### 2. Mobile Proxy Setup
+### 1. Mobile Proxy Setup
 - Automatic detection of connected Android devices via ADB
 - Easy proxy configuration on Android devices
 - Customizable proxy host and port settings
@@ -38,8 +33,9 @@ BMA (Burp Mobile Automation) is designed to simplify and automate common tasks i
 - Clear proxy settings with one click
 - Automatic ADB reverse port forwarding
 - Support for multiple devices simultaneously
+  <img src="static/1.gif" alt="MPS" width="800"/>
 
-### 3. Frida Server Management
+### 2. Frida Server Management
 - Automatic device architecture detection (arm64, arm, x86, x86_64)
 - Download latest Frida server releases from GitHub
 - Automated deployment to Android devices
@@ -48,6 +44,15 @@ BMA (Burp Mobile Automation) is designed to simplify and automate common tasks i
 - Version tracking and management
 - One-click full auto setup
 - Proper handling of zombie/defunct processes
+- <img src="static/2.gif" alt="frida panel" width="800"/>
+
+### 3. Curl to Repeater Converter
+- Convert any curl command to a Burp Repeater request
+- Supports all common curl flags and options
+- Automatic parsing of headers, cookies, and request bodies
+- Handles GET, POST, PUT, DELETE, and other HTTP methods
+- One-click send to Repeater
+<img src="static/3.gif" alt="BMA1 Logo" width="800"/>
 
 ### 4. Settings & Configuration
 - Automatic ADB path detection
@@ -401,12 +406,7 @@ For issues, questions, or suggestions:
 - Join PortSwigger Discord #extensions channel
 - Refer to documentation in the `docs/` folder
 
-## Changelog
-
-See [UPDATES_SUMMARY.md](UPDATES_SUMMARY.md) for detailed changelog and version history.
-
----
 
 **Version:** 1.0  
 **Last Updated:** November 2025  
-**Author:** BMA Development Team
+**Author:** Hitesh
