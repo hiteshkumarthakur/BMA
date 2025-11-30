@@ -244,13 +244,13 @@ curl 'https://api.example.com/users' \
 
 **UNIX-based systems (macOS, Linux):**
 ```bash
-cd /path/to/ExtensionTemplateProject
+cd /path/to/BMA
 ./gradlew clean build
 ```
 
 **Windows:**
 ```cmd
-cd \path\to\ExtensionTemplateProject
+cd \path\to\BMA
 gradlew.bat clean build
 ```
 
