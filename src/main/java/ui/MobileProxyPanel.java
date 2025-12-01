@@ -5,14 +5,19 @@ import utils.ADBHelper;
 import utils.EmulatorHelper;
 
 import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class MobileProxyPanel extends JPanel {
     private final MontoyaApi api;
-    private final JTextArea deviceListArea;
+    private final JPanel deviceSelectorPanel;
+    private final ButtonGroup deviceButtonGroup;
     private final JTextField proxyHostField;
     private final JTextField proxyPortField;
     private final JTextArea logOutput;
@@ -34,7 +39,9 @@ public class MobileProxyPanel extends JPanel {
         this.runningEmulatorProcesses = new HashMap<>();
 
         // Initialize all final UI components FIRST before using them
-        deviceListArea = new JTextArea(4, 25);
+        deviceSelectorPanel = new JPanel();
+        deviceSelectorPanel.setLayout(new BoxLayout(deviceSelectorPanel, BoxLayout.Y_AXIS));
+        deviceButtonGroup = new ButtonGroup();
         proxyHostField = new JTextField("127.0.0.1", 20);
         proxyPortField = new JTextField("8080", 20);
         logOutput = new JTextArea(6, 25);
@@ -78,23 +85,27 @@ public class MobileProxyPanel extends JPanel {
     private JPanel createProxyPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
 
-        JPanel contentPanel = new JPanel(new BorderLayout(10, 10));
-
-        // Device list panel
+        // Device selector panel with radio buttons
         JPanel devicePanel = new JPanel(new BorderLayout(5, 5));
-        devicePanel.setBorder(BorderFactory.createTitledBorder("Connected Devices"));
+        devicePanel.setBorder(BorderFactory.createTitledBorder("Select Target Device"));
 
+        // Create default "All Devices" radio button
+        JRadioButton defaultRadio = new JRadioButton("All Devices (default)", true);
+        defaultRadio.setActionCommand(null);
+        defaultRadio.addActionListener(e -> updateSelectedDevice());
+        deviceButtonGroup.add(defaultRadio);
+        deviceSelectorPanel.add(defaultRadio);
 
-        deviceListArea.setEditable(false);
-        deviceListArea.setFont(new Font("Monospaced", Font.PLAIN, 11));
-        JScrollPane deviceScroll = new JScrollPane(deviceListArea);
+        JScrollPane deviceScroll = new JScrollPane(deviceSelectorPanel);
+        deviceScroll.setPreferredSize(new Dimension(250, 70));
+        deviceScroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 70));
         devicePanel.add(deviceScroll, BorderLayout.CENTER);
 
         JButton refreshDevicesBtn = new JButton("Refresh Devices");
         refreshDevicesBtn.addActionListener(e -> refreshDevices());
         devicePanel.add(refreshDevicesBtn, BorderLayout.SOUTH);
 
-        contentPanel.add(devicePanel, BorderLayout.NORTH);
+        panel.add(devicePanel, BorderLayout.NORTH);
 
         // Proxy settings panel
         JPanel proxyPanel = new JPanel(new GridBagLayout());
@@ -110,7 +121,6 @@ public class MobileProxyPanel extends JPanel {
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
-
         proxyPanel.add(proxyHostField, gbc);
 
         gbc.gridx = 0;
@@ -120,7 +130,6 @@ public class MobileProxyPanel extends JPanel {
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
-
         proxyPanel.add(proxyPortField, gbc);
 
         gbc.gridx = 0;
@@ -142,8 +151,6 @@ public class MobileProxyPanel extends JPanel {
 
         proxyPanel.add(buttonPanel, gbc);
 
-        contentPanel.add(proxyPanel, BorderLayout.CENTER);
-
         // Log panel
         JPanel logPanel = new JPanel(new BorderLayout(5, 5));
         logPanel.setBorder(BorderFactory.createTitledBorder("Log"));
@@ -157,12 +164,16 @@ public class MobileProxyPanel extends JPanel {
         clearLogBtn.addActionListener(e -> logOutput.setText(""));
         logPanel.add(clearLogBtn, BorderLayout.SOUTH);
 
-        contentPanel.add(logPanel, BorderLayout.SOUTH);
+        // Use JSplitPane to give more space to log panel
+        JSplitPane verticalSplit = new JSplitPane(JSplitPane.VERTICAL_SPLIT, proxyPanel, logPanel);
+        verticalSplit.setResizeWeight(0.3); // Give 30% to proxy, 70% to log
+        verticalSplit.setDividerLocation(0.3);
 
-        panel.add(contentPanel, BorderLayout.CENTER);
+        panel.add(verticalSplit, BorderLayout.CENTER);
 
         return panel;
     }
+
 
     private JPanel createEmulatorPanel() {
         JPanel panel = new JPanel(new BorderLayout(10, 10));
@@ -252,7 +263,6 @@ public class MobileProxyPanel extends JPanel {
 
     private void refreshDevices() {
         log("Checking for connected devices...");
-        deviceListArea.setText("Scanning...");
 
         SwingWorker<List<String>, Void> worker = new SwingWorker<List<String>, Void>() {
             @Override
@@ -264,24 +274,63 @@ public class MobileProxyPanel extends JPanel {
             protected void done() {
                 try {
                     List<String> devices = get();
+
+                    // Clear existing radio buttons
+                    deviceSelectorPanel.removeAll();
+                    deviceButtonGroup.clearSelection();
+
+                    // Add default "All Devices" option
+                    JRadioButton defaultRadio = new JRadioButton("All Devices (default)", true);
+                    defaultRadio.setActionCommand(null);
+                    defaultRadio.addActionListener(e -> updateSelectedDevice());
+                    deviceButtonGroup.add(defaultRadio);
+                    deviceSelectorPanel.add(defaultRadio);
+
                     if (devices.isEmpty()) {
-                        deviceListArea.setText("No devices connected");
                         log("✗ No devices found");
+                        JLabel noDevicesLabel = new JLabel("  (No devices connected)");
+                        noDevicesLabel.setForeground(Color.GRAY);
+                        noDevicesLabel.setFont(new Font("Arial", Font.ITALIC, 11));
+                        deviceSelectorPanel.add(noDevicesLabel);
                     } else {
-                        StringBuilder sb = new StringBuilder();
-                        for (int i = 0; i < devices.size(); i++) {
-                            sb.append((i + 1)).append(". ").append(devices.get(i)).append("\n");
-                        }
-                        deviceListArea.setText(sb.toString());
                         log("✓ Found " + devices.size() + " device(s)");
+
+                        // Add radio button for each device
+                        for (String device : devices) {
+                            JRadioButton deviceRadio = new JRadioButton(device);
+                            deviceRadio.setActionCommand(device);
+                            deviceRadio.addActionListener(e -> updateSelectedDevice());
+                            deviceButtonGroup.add(deviceRadio);
+                            deviceSelectorPanel.add(deviceRadio);
+                        }
                     }
+
+                    // Refresh the panel
+                    deviceSelectorPanel.revalidate();
+                    deviceSelectorPanel.repaint();
+
+                    // Set default selection
+                    updateSelectedDevice();
+
                 } catch (Exception e) {
-                    deviceListArea.setText("Error: " + e.getMessage());
                     log("✗ Error: " + e.getMessage());
                 }
             }
         };
         worker.execute();
+    }
+
+    private void updateSelectedDevice() {
+        ButtonModel selectedModel = deviceButtonGroup.getSelection();
+        if (selectedModel != null) {
+            String deviceId = selectedModel.getActionCommand();
+            adbHelper.setSelectedDevice(deviceId);
+            if (deviceId != null) {
+                log("Selected device: " + deviceId);
+            } else {
+                log("Using default device (first available)");
+            }
+        }
     }
 
     private void setProxy() {
@@ -307,13 +356,13 @@ public class MobileProxyPanel extends JPanel {
                     if (get()) {
                         log("✓ Proxy set successfully");
                         JOptionPane.showMessageDialog(MobileProxyPanel.this,
-                            "Proxy set to " + host + ":" + port,
-                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                                "Proxy set to " + host + ":" + port,
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         log("✗ Failed to set proxy");
                         JOptionPane.showMessageDialog(MobileProxyPanel.this,
-                            "Failed to set proxy. Check if device is connected.",
-                            "Error", JOptionPane.ERROR_MESSAGE);
+                                "Failed to set proxy. Check if device is connected.",
+                                "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception e) {
                     log("✗ Error: " + e.getMessage());
@@ -338,8 +387,8 @@ public class MobileProxyPanel extends JPanel {
                     if (get()) {
                         log("✓ Proxy cleared successfully");
                         JOptionPane.showMessageDialog(MobileProxyPanel.this,
-                            "Proxy cleared successfully",
-                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                                "Proxy cleared successfully",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         log("✗ Failed to clear proxy");
                     }
@@ -366,8 +415,8 @@ public class MobileProxyPanel extends JPanel {
                     String settings = get();
                     log("Current proxy: " + settings);
                     JOptionPane.showMessageDialog(MobileProxyPanel.this,
-                        "Current proxy settings:\n" + settings,
-                        "Proxy Status", JOptionPane.INFORMATION_MESSAGE);
+                            "Current proxy settings:\n" + settings,
+                            "Proxy Status", JOptionPane.INFORMATION_MESSAGE);
                 } catch (Exception e) {
                     log("✗ Error: " + e.getMessage());
                 }
@@ -453,9 +502,9 @@ public class MobileProxyPanel extends JPanel {
 
         if (selected == null || selected.equals("No AVDs found")) {
             JOptionPane.showMessageDialog(this,
-                "Please select an emulator to start",
-                "No Selection",
-                JOptionPane.WARNING_MESSAGE);
+                    "Please select an emulator to start",
+                    "No Selection",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -481,11 +530,11 @@ public class MobileProxyPanel extends JPanel {
                         log("⏳ Waiting for emulator to boot (this may take 1-2 minutes)...");
 
                         JOptionPane.showMessageDialog(MobileProxyPanel.this,
-                            "Emulator '" + selected + "' is starting!\n\n" +
-                            "Please wait 1-2 minutes for it to fully boot.\n" +
-                            "Click 'Refresh Running' to check status.",
-                            "Emulator Starting",
-                            JOptionPane.INFORMATION_MESSAGE);
+                                "Emulator '" + selected + "' is starting!\n\n" +
+                                        "Please wait 1-2 minutes for it to fully boot.\n" +
+                                        "Click 'Refresh Running' to check status.",
+                                "Emulator Starting",
+                                JOptionPane.INFORMATION_MESSAGE);
 
                         // Auto-refresh after 30 seconds
                         Timer timer = new Timer(30000, e -> refreshRunningEmulators());
@@ -494,9 +543,9 @@ public class MobileProxyPanel extends JPanel {
                     } else {
                         log("✗ Failed to start emulator");
                         JOptionPane.showMessageDialog(MobileProxyPanel.this,
-                            "Failed to start emulator.\nCheck Settings tab for emulator path.",
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
+                                "Failed to start emulator.\nCheck Settings tab for emulator path.",
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception e) {
                     log("✗ Error: " + e.getMessage());
@@ -511,9 +560,9 @@ public class MobileProxyPanel extends JPanel {
 
         if (selected == null || selected.equals("No AVDs found")) {
             JOptionPane.showMessageDialog(this,
-                "Please select an emulator to stop",
-                "No Selection",
-                JOptionPane.WARNING_MESSAGE);
+                    "Please select an emulator to stop",
+                    "No Selection",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -521,11 +570,11 @@ public class MobileProxyPanel extends JPanel {
 
         if (process == null || !process.isAlive()) {
             JOptionPane.showMessageDialog(this,
-                "Emulator '" + selected + "' is not running from this extension.\n" +
-                "To stop manually: Close the emulator window or use:\n" +
-                "adb -s emulator-XXXX emu kill",
-                "Not Running",
-                JOptionPane.INFORMATION_MESSAGE);
+                    "Emulator '" + selected + "' is not running from this extension.\n" +
+                            "To stop manually: Close the emulator window or use:\n" +
+                            "adb -s emulator-XXXX emu kill",
+                    "Not Running",
+                    JOptionPane.INFORMATION_MESSAGE);
             return;
         }
 

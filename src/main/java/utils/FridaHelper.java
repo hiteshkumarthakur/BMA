@@ -24,6 +24,20 @@ public class FridaHelper {
         this.adbHelper = new ADBHelper(api);
     }
 
+    /**
+     * Set the device ID to use for Frida operations
+     */
+    public void setSelectedDevice(String deviceId) {
+        adbHelper.setSelectedDevice(deviceId);
+    }
+
+    /**
+     * Get the currently selected device ID
+     */
+    public String getSelectedDevice() {
+        return adbHelper.getSelectedDevice();
+    }
+
     public boolean downloadFridaServer(String architecture, String version, Consumer<String> logger) {
         try {
             if (version.equals("latest")) {
@@ -296,7 +310,7 @@ public class FridaHelper {
 
             if (result.trim().isEmpty()) {
                 return "Frida server is NOT running" +
-                       (currentVersion != null ? "\nLast configured version: " + currentVersion : "");
+                        (currentVersion != null ? "\nLast configured version: " + currentVersion : "");
             } else {
                 String versionInfo = currentVersion != null ? "\nVersion: " + currentVersion : "";
                 return "Frida server is RUNNING" + versionInfo + "\n\n" + result;
