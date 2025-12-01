@@ -12,11 +12,11 @@ public class EmulatorHelper {
     private final MontoyaApi api;
     private static String EMULATOR_COMMAND = null;
     private static final String[] COMMON_EMULATOR_PATHS = {
-        "emulator", // System PATH
-        System.getProperty("user.home") + "/Library/Android/sdk/emulator/emulator", // macOS
-        System.getProperty("user.home") + "/Android/Sdk/emulator/emulator", // Linux
-        "C:\\Users\\" + System.getProperty("user.name") + "\\AppData\\Local\\Android\\Sdk\\emulator\\emulator.exe", // Windows
-        System.getProperty("user.home") + "/AppData/Local/Android/Sdk/emulator/emulator.exe" // Windows alternative
+            "emulator", // System PATH
+            System.getProperty("user.home") + "/Library/Android/sdk/emulator/emulator", // macOS
+            System.getProperty("user.home") + "/Android/Sdk/emulator/emulator", // Linux
+            "C:\\Users\\" + System.getProperty("user.name") + "\\AppData\\Local\\Android\\Sdk\\emulator\\emulator.exe", // Windows
+            System.getProperty("user.home") + "/AppData/Local/Android/Sdk/emulator/emulator.exe" // Windows alternative
     };
 
     public EmulatorHelper(MontoyaApi api) {

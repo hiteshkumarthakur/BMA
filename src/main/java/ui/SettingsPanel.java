@@ -88,19 +88,19 @@ public class SettingsPanel extends JPanel {
         infoText.setBackground(getBackground());
         infoText.setFont(new Font("Monospaced", Font.PLAIN, 11));
         infoText.setText(
-            "Common ADB Locations:\n\n" +
-            "macOS:\n" +
-            "  ~/Library/Android/sdk/platform-tools/adb\n" +
-            "  /usr/local/bin/adb\n\n" +
-            "Linux:\n" +
-            "  ~/Android/Sdk/platform-tools/adb\n" +
-            "  /usr/bin/adb\n\n" +
-            "Windows:\n" +
-            "  C:\\Users\\YourName\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe\n\n" +
-            "To install ADB:\n" +
-            "  macOS: brew install android-platform-tools\n" +
-            "  Linux: sudo apt-get install adb\n" +
-            "  Windows: Download Android SDK Platform Tools"
+                "Common ADB Locations:\n\n" +
+                        "macOS:\n" +
+                        "  ~/Library/Android/sdk/platform-tools/adb\n" +
+                        "  /usr/local/bin/adb\n\n" +
+                        "Linux:\n" +
+                        "  ~/Android/Sdk/platform-tools/adb\n" +
+                        "  /usr/bin/adb\n\n" +
+                        "Windows:\n" +
+                        "  C:\\Users\\YourName\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe\n\n" +
+                        "To install ADB:\n" +
+                        "  macOS: brew install android-platform-tools\n" +
+                        "  Linux: sudo apt-get install adb\n" +
+                        "  Windows: Download Android SDK Platform Tools"
         );
 
         infoPanel.add(infoText, BorderLayout.CENTER);
@@ -155,7 +155,7 @@ public class SettingsPanel extends JPanel {
                 pb = new ProcessBuilder(path, "devices");
                 process = pb.start();
                 java.io.BufferedReader reader = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(process.getInputStream()));
+                        new java.io.InputStreamReader(process.getInputStream()));
 
                 int deviceCount = 0;
                 String line;
@@ -199,11 +199,11 @@ public class SettingsPanel extends JPanel {
         setStatus("✓ ADB path saved: " + path, Color.GREEN);
 
         JOptionPane.showMessageDialog(this,
-            "ADB path saved successfully!\n\n" +
-            "Path: " + path + "\n\n" +
-            "Click 'Test ADB Connection' to verify.",
-            "Success",
-            JOptionPane.INFORMATION_MESSAGE);
+                "ADB path saved successfully!\n\n" +
+                        "Path: " + path + "\n\n" +
+                        "Click 'Test ADB Connection' to verify.",
+                "Success",
+                JOptionPane.INFORMATION_MESSAGE);
     }
 
     private void autoDetectAdb() {

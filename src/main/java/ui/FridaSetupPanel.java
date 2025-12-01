@@ -10,6 +10,8 @@ import java.awt.*;
 public class FridaSetupPanel extends JPanel {
     private final MontoyaApi api;
     private final JComboBox<String> architectureCombo;
+    private final JPanel deviceSelectorPanel;
+    private final ButtonGroup deviceButtonGroup;
     private final JTextField customVersionField;
     private final JTextArea logOutput;
     private final FridaHelper fridaHelper;
@@ -35,8 +37,40 @@ public class FridaSetupPanel extends JPanel {
         gbc.insets = new Insets(5, 5, 5, 5);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
+        // Device selector panel
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+
+        JPanel devicePanel = new JPanel(new BorderLayout(5, 5));
+        devicePanel.setBorder(BorderFactory.createTitledBorder("Select Target Device"));
+
+        deviceSelectorPanel = new JPanel();
+        deviceSelectorPanel.setLayout(new BoxLayout(deviceSelectorPanel, BoxLayout.Y_AXIS));
+        deviceButtonGroup = new ButtonGroup();
+
+        // Create default "All Devices" radio button
+        JRadioButton defaultRadio = new JRadioButton("All Devices (default)", true);
+        defaultRadio.setActionCommand(null);
+        defaultRadio.addActionListener(e -> updateSelectedDevice());
+        deviceButtonGroup.add(defaultRadio);
+        deviceSelectorPanel.add(defaultRadio);
+
+        JScrollPane deviceScroll = new JScrollPane(deviceSelectorPanel);
+        deviceScroll.setPreferredSize(new Dimension(400, 80));
+        devicePanel.add(deviceScroll, BorderLayout.CENTER);
+
+        JButton refreshDevicesBtn = new JButton("Refresh Devices");
+        refreshDevicesBtn.addActionListener(e -> refreshDevices());
+        devicePanel.add(refreshDevicesBtn, BorderLayout.SOUTH);
+
+        configPanel.add(devicePanel, gbc);
+
+        // Reset gridwidth for next components
+        gbc.gridwidth = 1;
+        gbc.gridx = 0;
+        gbc.gridy = 1;
         gbc.weightx = 0.0;
         configPanel.add(new JLabel("Architecture:"), gbc);
 
@@ -47,7 +81,7 @@ public class FridaSetupPanel extends JPanel {
         configPanel.add(architectureCombo, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 1;
+        gbc.gridy = 2;
         gbc.weightx = 0.0;
         configPanel.add(new JLabel("Version (optional):"), gbc);
 
@@ -57,9 +91,9 @@ public class FridaSetupPanel extends JPanel {
         configPanel.add(customVersionField, gbc);
 
         gbc.gridx = 0;
-        gbc.gridy = 2;
+        gbc.gridy = 3;
         gbc.gridwidth = 2;
-        JLabel infoLabel = new JLabel("<html><i>Leave 'latest' to download the newest version</i></html>");
+        JLabel infoLabel = new JLabel("Leave 'latest' to download the newest version");
         infoLabel.setFont(new Font("Arial", Font.ITALIC, 11));
         configPanel.add(infoLabel, gbc);
 
@@ -125,6 +159,9 @@ public class FridaSetupPanel extends JPanel {
         contentPanel.add(logPanel, BorderLayout.SOUTH);
 
         add(contentPanel, BorderLayout.CENTER);
+
+        // Auto-refresh devices on load
+        SwingUtilities.invokeLater(() -> refreshDevices());
     }
 
     private void detectArchitecture() {
@@ -144,13 +181,13 @@ public class FridaSetupPanel extends JPanel {
                         architectureCombo.setSelectedItem(arch);
                         log("✓ Detected architecture: " + arch);
                         JOptionPane.showMessageDialog(FridaSetupPanel.this,
-                            "Detected architecture: " + arch,
-                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                                "Detected architecture: " + arch,
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         log("✗ Failed to detect architecture");
                         JOptionPane.showMessageDialog(FridaSetupPanel.this,
-                            "Failed to detect architecture",
-                            "Error", JOptionPane.ERROR_MESSAGE);
+                                "Failed to detect architecture",
+                                "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception e) {
                     log("✗ Error: " + e.getMessage());
@@ -185,13 +222,13 @@ public class FridaSetupPanel extends JPanel {
                     if (get()) {
                         log("✓ Download completed successfully");
                         JOptionPane.showMessageDialog(FridaSetupPanel.this,
-                            "Frida server downloaded successfully",
-                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                                "Frida server downloaded successfully",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         log("✗ Download failed");
                         JOptionPane.showMessageDialog(FridaSetupPanel.this,
-                            "Failed to download Frida server",
-                            "Error", JOptionPane.ERROR_MESSAGE);
+                                "Failed to download Frida server",
+                                "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception e) {
                     log("✗ Error: " + e.getMessage());
@@ -216,13 +253,13 @@ public class FridaSetupPanel extends JPanel {
                     if (get()) {
                         log("✓ Frida server pushed successfully");
                         JOptionPane.showMessageDialog(FridaSetupPanel.this,
-                            "Frida server pushed to device",
-                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                                "Frida server pushed to device",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         log("✗ Failed to push Frida server");
                         JOptionPane.showMessageDialog(FridaSetupPanel.this,
-                            "Failed to push Frida server to device",
-                            "Error", JOptionPane.ERROR_MESSAGE);
+                                "Failed to push Frida server to device",
+                                "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception e) {
                     log("✗ Error: " + e.getMessage());
@@ -247,13 +284,13 @@ public class FridaSetupPanel extends JPanel {
                     if (get()) {
                         log("✓ Frida server started successfully");
                         JOptionPane.showMessageDialog(FridaSetupPanel.this,
-                            "Frida server is now running",
-                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                                "Frida server is now running",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         log("✗ Failed to start Frida server");
                         JOptionPane.showMessageDialog(FridaSetupPanel.this,
-                            "Failed to start Frida server",
-                            "Error", JOptionPane.ERROR_MESSAGE);
+                                "Failed to start Frida server",
+                                "Error", JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception e) {
                     log("✗ Error: " + e.getMessage());
@@ -278,8 +315,8 @@ public class FridaSetupPanel extends JPanel {
                     if (get()) {
                         log("✓ Frida server stopped");
                         JOptionPane.showMessageDialog(FridaSetupPanel.this,
-                            "Frida server stopped",
-                            "Success", JOptionPane.INFORMATION_MESSAGE);
+                                "Frida server stopped",
+                                "Success", JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         log("✗ Failed to stop Frida server");
                     }
@@ -306,8 +343,8 @@ public class FridaSetupPanel extends JPanel {
                     String status = get();
                     log("Status: " + status);
                     JOptionPane.showMessageDialog(FridaSetupPanel.this,
-                        status,
-                        "Frida Status", JOptionPane.INFORMATION_MESSAGE);
+                            status,
+                            "Frida Status", JOptionPane.INFORMATION_MESSAGE);
                 } catch (Exception e) {
                     log("✗ Error: " + e.getMessage());
                 }
@@ -318,9 +355,9 @@ public class FridaSetupPanel extends JPanel {
 
     private void fullAutoSetup() {
         int result = JOptionPane.showConfirmDialog(this,
-            "This will:\n1. Detect device architecture\n2. Download latest Frida server\n3. Push to device\n4. Start Frida server\n\nContinue?",
-            "Full Auto Setup",
-            JOptionPane.YES_NO_OPTION);
+                "This will:\n1. Detect device architecture\n2. Download latest Frida server\n3. Push to device\n4. Start Frida server\n\nContinue?",
+                "Full Auto Setup",
+                JOptionPane.YES_NO_OPTION);
 
         if (result != JOptionPane.YES_OPTION) {
             return;
@@ -380,13 +417,13 @@ public class FridaSetupPanel extends JPanel {
                 try {
                     get();
                     JOptionPane.showMessageDialog(FridaSetupPanel.this,
-                        "Full setup completed successfully!",
-                        "Success", JOptionPane.INFORMATION_MESSAGE);
+                            "Full setup completed successfully!",
+                            "Success", JOptionPane.INFORMATION_MESSAGE);
                 } catch (Exception e) {
                     log("✗ Error during setup: " + e.getMessage());
                     JOptionPane.showMessageDialog(FridaSetupPanel.this,
-                        "Setup failed: " + e.getMessage(),
-                        "Error", JOptionPane.ERROR_MESSAGE);
+                            "Setup failed: " + e.getMessage(),
+                            "Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
         };
@@ -397,6 +434,79 @@ public class FridaSetupPanel extends JPanel {
         logOutput.append(message + "\n");
         logOutput.setCaretPosition(logOutput.getDocument().getLength());
         api.logging().logToOutput("[Frida Setup] " + message);
+    }
+
+    private void refreshDevices() {
+        log("Refreshing device list...");
+
+        SwingWorker<java.util.List<String>, Void> worker = new SwingWorker<java.util.List<String>, Void>() {
+            @Override
+            protected java.util.List<String> doInBackground() {
+                return adbHelper.getConnectedDevices();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    java.util.List<String> devices = get();
+
+                    // Clear existing radio buttons
+                    deviceSelectorPanel.removeAll();
+                    deviceButtonGroup.clearSelection();
+
+                    // Add default "All Devices" option
+                    JRadioButton defaultRadio = new JRadioButton("All Devices (default)", true);
+                    defaultRadio.setActionCommand(null);
+                    defaultRadio.addActionListener(e -> updateSelectedDevice());
+                    deviceButtonGroup.add(defaultRadio);
+                    deviceSelectorPanel.add(defaultRadio);
+
+                    if (devices.isEmpty()) {
+                        log("✗ No devices found");
+                        JLabel noDevicesLabel = new JLabel("  (No devices connected)");
+                        noDevicesLabel.setForeground(Color.GRAY);
+                        noDevicesLabel.setFont(new Font("Arial", Font.ITALIC, 11));
+                        deviceSelectorPanel.add(noDevicesLabel);
+                    } else {
+                        log("✓ Found " + devices.size() + " device(s)");
+
+                        // Add radio button for each device
+                        for (String device : devices) {
+                            JRadioButton deviceRadio = new JRadioButton(device);
+                            deviceRadio.setActionCommand(device);
+                            deviceRadio.addActionListener(e -> updateSelectedDevice());
+                            deviceButtonGroup.add(deviceRadio);
+                            deviceSelectorPanel.add(deviceRadio);
+                        }
+                    }
+
+                    // Refresh the panel
+                    deviceSelectorPanel.revalidate();
+                    deviceSelectorPanel.repaint();
+
+                    // Set default selection
+                    updateSelectedDevice();
+
+                } catch (Exception e) {
+                    log("✗ Error refreshing devices: " + e.getMessage());
+                }
+            }
+        };
+        worker.execute();
+    }
+
+    private void updateSelectedDevice() {
+        ButtonModel selectedModel = deviceButtonGroup.getSelection();
+        if (selectedModel != null) {
+            String deviceId = selectedModel.getActionCommand();
+            fridaHelper.setSelectedDevice(deviceId);
+            adbHelper.setSelectedDevice(deviceId);
+            if (deviceId != null) {
+                log("Selected device: " + deviceId);
+            } else {
+                log("Using default device (first available)");
+            }
+        }
     }
 }
 
