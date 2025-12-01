@@ -403,8 +403,6 @@ This project is licensed under the terms specified by PortSwigger.
 For issues, questions, or suggestions:
 
 - Create an issue on the project repository
-- Join PortSwigger Discord #extensions channel
-- Refer to documentation in the `docs/` folder
 
 
 **Version:** 1.0  
