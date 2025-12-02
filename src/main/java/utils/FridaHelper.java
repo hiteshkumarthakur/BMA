@@ -18,10 +18,13 @@ public class FridaHelper {
     private String fridaServerPath = "/data/local/tmp/frida-server";
     private String currentVersion = null;
     private Path localFridaPath;
+    private Path tempDir;
 
     public FridaHelper(MontoyaApi api) {
         this.api = api;
         this.adbHelper = new ADBHelper(api);
+        // Clean up any old Frida downloads on initialization
+        cleanupOldDownloads();
     }
 
     /**
@@ -40,6 +43,9 @@ public class FridaHelper {
 
     public boolean downloadFridaServer(String architecture, String version, Consumer<String> logger) {
         try {
+            // Clean up previous download if exists
+            cleanupCurrentDownload();
+
             if (version.equals("latest")) {
                 version = getLatestFridaVersion();
                 if (version == null) {
@@ -60,7 +66,7 @@ public class FridaHelper {
 
             logger.accept("Downloading from: " + downloadUrl);
 
-            Path tempDir = Files.createTempDirectory("frida");
+            tempDir = Files.createTempDirectory("frida");
             Path downloadPath = tempDir.resolve(fileName);
 
             URL url = new URL(downloadUrl);
@@ -179,6 +185,10 @@ public class FridaHelper {
 
             api.logging().logToOutput("Frida server pushed to: " + fridaServerPath);
             api.logging().logToOutput("Version: " + (currentVersion != null ? currentVersion : "unknown"));
+
+            // Clean up temporary files after successful push
+            cleanupCurrentDownload();
+            api.logging().logToOutput("Cleaned up temporary download files");
 
             return true;
         } catch (Exception e) {
@@ -317,6 +327,64 @@ public class FridaHelper {
             }
         } catch (Exception e) {
             return "Error checking status: " + e.getMessage();
+        }
+    }
+
+    /**
+     * Clean up the current temporary download directory
+     */
+    private void cleanupCurrentDownload() {
+        if (tempDir != null && Files.exists(tempDir)) {
+            try {
+                deleteDirectory(tempDir);
+                api.logging().logToOutput("Cleaned up temporary directory: " + tempDir);
+                tempDir = null;
+                localFridaPath = null;
+            } catch (IOException e) {
+                api.logging().logToError("Failed to clean up temp directory: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Clean up all old Frida download directories in the system temp folder
+     */
+    private void cleanupOldDownloads() {
+        try {
+            Path tempRoot = Files.createTempDirectory("frida").getParent();
+
+            if (tempRoot != null && Files.exists(tempRoot)) {
+                Files.list(tempRoot)
+                    .filter(path -> path.getFileName().toString().startsWith("frida"))
+                    .filter(Files::isDirectory)
+                    .forEach(path -> {
+                        try {
+                            deleteDirectory(path);
+                            api.logging().logToOutput("Cleaned up old Frida directory: " + path.getFileName());
+                        } catch (IOException e) {
+                            api.logging().logToError("Failed to delete old directory: " + path + " - " + e.getMessage());
+                        }
+                    });
+            }
+        } catch (Exception e) {
+            api.logging().logToError("Error during cleanup of old downloads: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Recursively delete a directory and its contents
+     */
+    private void deleteDirectory(Path directory) throws IOException {
+        if (Files.exists(directory)) {
+            Files.walk(directory)
+                .sorted((a, b) -> b.compareTo(a)) // Reverse order to delete files before directories
+                .forEach(path -> {
+                    try {
+                        Files.delete(path);
+                    } catch (IOException e) {
+                        api.logging().logToError("Failed to delete: " + path + " - " + e.getMessage());
+                    }
+                });
         }
     }
 }
