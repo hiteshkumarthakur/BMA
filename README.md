@@ -26,7 +26,7 @@ BMA (Burp Mobile Assistant) is designed to simplify and automate common tasks in
 ## Features
 
 ### 1. Mobile Proxy Setup
-- Automatic detection of connected Android devices via ADB
+- Automatic detection of connected Android devices via ADB (Note: <b>I suggest starting the emulator without this extension, as I have noticed some memory issues.</b>)
 - Easy proxy configuration on Android devices
 - Customizable proxy host and port settings
 - Proxy status checking and verification
