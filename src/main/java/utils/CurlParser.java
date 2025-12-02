@@ -61,22 +61,28 @@ public class CurlParser {
     }
 
     private String extractUrl(String curlCommand) {
-        Pattern pattern = Pattern.compile("curl\\s+(?:-[^\\s]+\\s+)*['\"]?([^'\"\\s]+)['\"]?");
+        // First try to match --url flag
+        Pattern pattern = Pattern.compile("--url\\s+['\"]?([^'\"\\s]+)['\"]?");
         Matcher matcher = pattern.matcher(curlCommand);
         if (matcher.find()) {
             return matcher.group(1);
         }
 
-        pattern = Pattern.compile("--url\\s+['\"]?([^'\"\\s]+)['\"]?");
+        // Look for http/https URL anywhere in the command
+        pattern = Pattern.compile("(https?://[^\\s'\"]+)");
         matcher = pattern.matcher(curlCommand);
         if (matcher.find()) {
             return matcher.group(1);
         }
 
-        pattern = Pattern.compile("(https?://[^\\s'\"]+)");
+        // Last resort: try to find URL after curl and skip flags
+        pattern = Pattern.compile("curl\\s+(?:-[^\\s]+\\s+)*['\"]?([^'\"\\s]+)['\"]?");
         matcher = pattern.matcher(curlCommand);
         if (matcher.find()) {
-            return matcher.group(1);
+            String potential = matcher.group(1);
+            if (potential.startsWith("http://") || potential.startsWith("https://")) {
+                return potential;
+            }
         }
 
         return null;
